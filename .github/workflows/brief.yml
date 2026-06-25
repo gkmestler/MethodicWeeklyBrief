@@ -1,0 +1,71 @@
+name: Generate Brief
+
+# Runs the Python generator in the cloud instead of on the Mac mini.
+#
+# Three ways it fires:
+#   * schedule           — the automatic weekly run (Monday morning).
+#   * workflow_dispatch  — manual run from the GitHub Actions UI (optional week_of).
+#   * repository_dispatch— the dashboard "Generate now" button (via /api/trigger).
+#
+# Secrets come from GitHub repo secrets (Settings -> Secrets and variables ->
+# Actions). config/config.toml is committed and supplies the non-secret toggles.
+
+on:
+  schedule:
+    # 11:00 UTC every Monday (~7am ET in summer / 6am ET in winter).
+    # Cron does not observe DST; adjust if you care about the exact local hour.
+    - cron: "0 11 * * 1"
+  workflow_dispatch:
+    inputs:
+      week_of:
+        description: "ISO Monday date (YYYY-MM-DD). Blank = this week's Monday."
+        required: false
+        default: ""
+  repository_dispatch:
+    types: [generate-brief]
+
+# Never let two generations run at once (e.g. the button while the weekly cron is
+# mid-run). A queued one waits rather than clobbering the in-flight write.
+concurrency:
+  group: generate-brief
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # Email is optional and off by default (config.toml [email].enabled = false).
+      # These are only used if you flip it on.
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_APP_PASSWORD: ${{ secrets.SMTP_APP_PASSWORD }}
+      EMAIL_TO: ${{ secrets.EMAIL_TO }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11" # 3.11+ so tomllib is in the stdlib
+
+      - name: Install generator dependencies
+        run: pip install -r generator/requirements.txt
+
+      # Button path: the dashboard already inserted a 'queued' row in
+      # generation_requests. The watcher claims it, runs the generator, and writes
+      # done/error status back so the button's spinner resolves.
+      - name: Process manual-trigger queue (dashboard button)
+        if: github.event_name == 'repository_dispatch'
+        run: python -m generator.watch_triggers
+
+      # Scheduled / manual path: just generate the edition. No status row needed.
+      - name: Generate edition (scheduled / manual)
+        if: github.event_name != 'repository_dispatch'
+        run: |
+          if [ -n "${{ github.event.inputs.week_of }}" ]; then
+            python -m generator.generate --week-of "${{ github.event.inputs.week_of }}"
+          else
+            python -m generator.generate
+          fi

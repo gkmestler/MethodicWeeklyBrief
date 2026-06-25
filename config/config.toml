@@ -1,0 +1,25 @@
+# Methodic Monday Brief — non-secret configuration.
+# Secrets live in config/.env (gitignored). This file is safe to commit.
+
+[model]
+# Current Claude with web search. Override if a newer model ships.
+name = "claude-opus-4-8"
+max_tokens = 16000
+# Cap on web_search tool calls per generation run.
+max_web_searches = 12
+
+[buy_box]
+# Target acquisition multiple band, drawn on the multiples chart.
+low = 3.0
+high = 4.0
+
+[email]
+# Off by default. Set true to email the rendered brief from the Mac mini after each run.
+enabled = false
+subject_prefix = "Methodic Monday Brief"
+
+[run]
+# Local timezone label, informational only (launchd schedules in local time).
+timezone = "America/New_York"
+# Write a markdown copy of each brief to generator/out/ in addition to Supabase.
+save_local_copy = true

@@ -1,0 +1,16 @@
+{
+  "name": "methodic-monday-brief",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Root entry point. Delegates web commands into web/ so you never need to cd.",
+  "scripts": {
+    "dev": "npm --prefix web run dev",
+    "build": "npm --prefix web run build",
+    "start": "npm --prefix web run start",
+    "lint": "npm --prefix web run lint",
+    "install:web": "npm --prefix web install",
+    "postinstall": "npm --prefix web install",
+    "brief": "bash scripts/run_brief.sh",
+    "brief:dry": "bash scripts/run_brief.sh --dry-run"
+  }
+}

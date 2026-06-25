@@ -1,0 +1,4 @@
+anthropic>=0.40.0
+supabase>=2.7.0
+python-dotenv>=1.0.0
+# tomllib is stdlib on Python 3.11+. If you must run on 3.10, add: tomli>=2.0
